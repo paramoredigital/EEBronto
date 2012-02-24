@@ -1,5 +1,13 @@
+### How to Use
+
+Subscribing folks to a Bronto account consists of two steps:
+
+1. make a call to `add_or_update_contact` which will queue up the subscription request. 
+2. after you've added all the contacts you want to update, make a call to `submit` to actually fire off the requests to Bronto and return the results.
+
 ### Subscribing Contacts
-Adds the provided contact to the submission queue.
+Calling the method doesn't actually subscribe the contact. It just adds them to the subscription queue.
+To actually push the subscriptions to Bronto, you must call the `submit` plugin method.
 
 	exp:bronto:add_or_update_contact
 	* param string email
@@ -10,7 +18,8 @@ Adds the provided contact to the submission queue.
 	* return void
 
 ### Submitting Requests
-Submits all queued contacts to Bronto for subscription
+Submits any previously-queued subscription requests to Bronto. Via the template parser, this method returns the
+results as well as any error messages that were encountered.
 
 	exp:bronto:submit
 	* param string api_key REQUIRED 
@@ -27,6 +36,8 @@ Submits all queued contacts to Bronto for subscription
 			- string custom_source
 
 ### Example
+This example subscribes two people successfully, but the third will show
+and error message since the email is invalid.
 
 	{exp:bronto:add_or_update_contact
 		email="bunch.jesse@gmail.com"
