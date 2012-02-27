@@ -115,10 +115,11 @@ class Bronto {
 		
 		// Fetch params
 		$api_key = $this->EE->TMPL->fetch_param('api_key', FALSE);
-		$message_ids = explode('|', $this->EE->TMPL->fetch_param('message_id', ''));
+		$message_id_string = $this->EE->TMPL->fetch_param('message_id', '');
+		$message_ids = explode('|', $message_id_string);
 		$from_name = $this->EE->TMPL->fetch_param('from_name', '');
 		$from_email = $this->EE->TMPL->fetch_param('from_email', '');
-		$debug_log[] = "API Key: $api_key / Message ID(s): $message_ids / From: $from_name <$from_email>";
+		$debug_log[] = "API Key: $api_key / Message ID(s): $message_id_string / From: $from_name <$from_email>";
 
 		// Message IDs should be an array
 		if (!empty($message_ids) AND !is_array($message_ids)) {
@@ -138,6 +139,7 @@ class Bronto {
 			$_SESSION['bronto_contacts_queue']
 		);
 		$debug_log[] = var_export($subscribe_results, TRUE);
+		$debug_log[] = $this->EE->bronto_model->soap_client->__getLastRequest();
 
 		// Send messages?
 		if (count($message_ids)) {
@@ -161,6 +163,7 @@ class Bronto {
 					$from_email
 				);
 				$debug_log[] = var_export($delivery_results, TRUE);
+				$debug_log[] = $this->EE->bronto_model->soap_client->__getLastRequest();
 			}
 
 		}

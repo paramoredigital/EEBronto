@@ -63,7 +63,7 @@ class Bronto_model {
 	 * @param SoapClient
 	 * @author Jesse Bunch
 	*/
-	private $soap_client;
+	public $soap_client;
 
 	/**
 	 * Provided by the bronto api after a successful login
