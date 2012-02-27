@@ -105,6 +105,9 @@ class Bronto {
 
 		$this->EE->load->model('bronto_model');
 		
+		// Initialize the debug log
+		$debug_log = array();
+		
 		// Must have contacts
 		if (empty($_SESSION['bronto_contacts_queue'])) {
 			return $this->EE->TMPL->no_results();
@@ -115,6 +118,7 @@ class Bronto {
 		$message_ids = explode('|', $this->EE->TMPL->fetch_param('message_id', ''));
 		$from_name = $this->EE->TMPL->fetch_param('from_name', '');
 		$from_email = $this->EE->TMPL->fetch_param('from_email', '');
+		$debug_log[] = "API Key: $api_key / Message ID(s): $message_ids / From: $from_name <$from_email>";
 
 		// Message IDs should be an array
 		if (!empty($message_ids) AND !is_array($message_ids)) {
@@ -133,6 +137,7 @@ class Bronto {
 		$subscribe_results = $this->EE->bronto_model->add_or_update_contacts(
 			$_SESSION['bronto_contacts_queue']
 		);
+		$debug_log[] = var_export($subscribe_results, TRUE);
 
 		// Send messages?
 		if (count($message_ids)) {
@@ -154,7 +159,8 @@ class Bronto {
 					$contact_ids,
 					$from_name,
 					$from_email
-				);	
+				);
+				$debug_log[] = var_export($delivery_results, TRUE);
 			}
 
 		}
@@ -168,6 +174,7 @@ class Bronto {
 				'contact_id' => @$subscribe_result['id'],
 				'error_string' => @$subscribe_result['errorString'],
 				'contact' => array($_SESSION['bronto_contacts_queue'][$index]),
+				'debug_log' => implode("\n", $debug_log)
 			);
 		}
 		

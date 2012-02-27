@@ -76,6 +76,7 @@ and error message since the email is invalid.
 				Message Preference: {message_pref}<br>
 				API Source: {custom_source}<br>
 			{/contact}
+			Debug Log: {debug_log}
 		{if:else}
 			Error: {error_string}<br>
 		{/if}
