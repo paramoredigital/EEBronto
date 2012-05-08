@@ -62,7 +62,7 @@ and error message since the email is invalid.
 		from_name="Paramore Test"
 		from_email="test@paramore.is"
 		message_id="0bba03eb0000000000000000000000083d02"
-		api_key="JLKJH6789876TYUIKJVB"
+		api_key="YOURAPIKEY"
 	}
 
 		{if no_results}No contacts to add!{/if}
