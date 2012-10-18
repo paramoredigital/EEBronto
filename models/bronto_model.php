@@ -11,7 +11,7 @@
  * @since		Version 2.0
  * @filesource
  */
- 
+
 // ------------------------------------------------------------------------
 
 /**
@@ -35,7 +35,7 @@ class Bronto_model {
 	const BRONTO_WSDL = 'https://api.bronto.com/v4?wsdl';
 	const BRONTO_URL_HTTPS = 'https://api.bronto.com/v4';
 	const BRONTO_URL_HTTP = 'http://api.bronto.com/v4';
-	
+
 	/**
 	 * Message preferences
 	 * @author Jesse Bunch
@@ -72,7 +72,7 @@ class Bronto_model {
 	*/
 	private $session_id;
 
-    
+
 	/**
 	 * Constructor
 	 * @author Jesse Bunch
@@ -80,18 +80,18 @@ class Bronto_model {
 	public function __construct() {
 
 		$this->EE =& get_instance();
-		
+
 		// Create the SOAP client
 		$this->soap_client = new SoapClient(
 			self::BRONTO_WSDL,
 			array('trace' => 1, 'encoding' => 'UTF-8')
 		);
-		
+
 		// Set the API Location
 		$this->soap_client->__setLocation(self::BRONTO_URL_HTTPS);
 
 	}
-	
+
 	/**
 	 * Authenticates the client to the bronto API
 	 * @param string $api_token
@@ -104,17 +104,17 @@ class Bronto_model {
 		if ($this->session_id) {
 			return TRUE;
 		}
-		
+
 		// Validate API Token
 		if (empty($this->api_token) && empty($api_token)) {
 			return FALSE;
 		}
-		
+
 		// New API token?
 		if (!empty($api_token)) {
 			$this->api_token = $api_token;
 		}
-		
+
 		// Fetch the session ID
 		$this->session_id = $this->soap_client->login(
 			array('apiToken' => $this->api_token)
@@ -139,63 +139,78 @@ class Bronto_model {
 	 * @param string $message_pref Either MESSAGE_PREF_HTML or MESSAGE_PREF_TEXT_ONLY
 	 * @param string $custom_source
 	 * @param array $custom_fields Key/Value field data
-	 * @param array $list_ids 
+	 * @param array $list_ids
 	 * @return mixed bool|string The contact ID
 	 * @author Jesse Bunch
 	*/
 	public function add_or_update_contacts($contacts) {
 
-		$contact_data = array();
-		foreach($contacts as $contact) {
-			
-			// Extract vars
-			$email = $contact['email'];
-			$message_pref = $contact['message_pref'];
-			$custom_source = $contact['custom_source'];
-			$custom_fields = $contact['custom_fields'];
-			$list_ids = $contact['list_ids'];
+        $contact_data = array();
 
-			// Default message preference
-			// We can't specify a constant in the method sig.
-			if (empty($message_pref)) {
-				$message_pref = self::MESSAGE_PREF_HTML;
-			}
-			
-			// Map custom fields to their field ID
-			$field_data = array();
-			if (count($custom_fields)) {
+        foreach($contacts as $contact) {
 
-				// Get the field IDs
-				$field_ids = $this->_retrieve_custom_field_ids(
-					array_keys($custom_fields)
-				);
+            // Extract vars
+            $email = $contact['email'];
+            $message_pref = $contact['message_pref'];
+            $custom_source = $contact['custom_source'];
+            $custom_fields = $contact['custom_fields'];
+            $list_ids = $contact['list_ids'];
 
-				// Map custom fields
-				foreach($custom_fields as $field_name => $field_value) {
-					$field_data[] = array(
-						'fieldId' => $field_ids[$field_name],
-						'content' => $field_value
-					);
-				}
+            // Default message preference
+            // We can't specify a constant in the method sig.
+            if (empty($message_pref)) {
+                $message_pref = self::MESSAGE_PREF_HTML;
+            }
 
-			}
+            // Map custom fields to their field ID
+            $field_data = array();
+            if (count($custom_fields)) {
 
-			// Put together contact data
-			$contact_data[] = array(
-				'email' => $email,
-				'msgPref' => $message_pref,
-				'customSource' => $custom_source,
-				'fields' => $field_data,
-				'listIds' => $list_ids
-			);
+                // Get the field IDs
+                $field_ids = $this->_retrieve_custom_field_ids(
+                    array_keys($custom_fields)
+                );
 
-		}
+                // Map custom fields
+                foreach($custom_fields as $field_name => $field_value) {
+                    $field_data[] = array(
+                        'fieldId' => $field_ids[$field_name],
+                        'content' => $field_value
+                    );
+                }
 
-		// Get the result
-		return $this->_send_to_bronto(
-			'addOrUpdateContacts',
-			$contact_data
-		);
+            }
+
+            // Put together contact data
+            $contact_data[] = array(
+                'email' => $email,
+                'msgPref' => $message_pref,
+                'customSource' => $custom_source,
+                'fields' => $field_data
+            );
+
+        }
+
+        // Get the result
+        $add_contacts_result = $this->_send_to_bronto(
+            'addOrUpdateContacts',
+            $contact_data
+        );
+
+        // Subscribe to lists
+        foreach($contacts as $contact) {
+            foreach($contact['list_ids'] as $list_id) {
+                $this->_send_to_bronto(
+                    'addToList',
+                    array(
+                        'list' => array('id' => $list_id),
+                        'contacts' => array(array('email' => $contact['email']))
+                    )
+                );
+            }
+        }
+
+        return $add_contacts_result;
 
 	}
 
@@ -209,10 +224,10 @@ class Bronto_model {
 	 * @author Jesse Bunch
 	*/
 	public function send_message($message_ids, $contact_ids, $from_name, $from_email) {
-		
+
 		// Set the delivery date to now
 		$delivery_date = date('c');
-	
+
 		// Message IDs should be an array
 		if (!is_array($message_ids)) {
 			$message_ids = array($message_ids);
@@ -260,12 +275,12 @@ class Bronto_model {
 	 * @author Jesse Bunch
 	*/
 	private function _retrieve_custom_field_ids($field_names) {
-		
+
 		static $field_cache;
 
 		// Generate cache key
 		$cache_key = base64_encode(serialize($field_names));
-		
+
 		// Check cache
 		if (isset($field_cache[$cache_key])) {
 			return $field_cache[$cache_key];
@@ -302,7 +317,7 @@ class Bronto_model {
 
 		// Cache
 		$field_cache[$cache_key] = $return_fields;
-		
+
 		// Return the fields
 		return $return_fields;
 
@@ -324,13 +339,13 @@ class Bronto_model {
 
 		// Authenticate
 		$this->authenticate();
-		
+
 		// Fire!
 		$bronto_results = $this->soap_client
 			->$method($data)
 			->return
 			->results;
-		
+
 		// Make sure results are an array
 		if (!is_array($bronto_results)) {
 			$bronto_results = array($bronto_results);
@@ -339,17 +354,17 @@ class Bronto_model {
 		// Create result set
 		$result_set = array();
 		foreach ($bronto_results as $bronto_result) {
-			
+
 			// Add info to result set
 			$result_set[] = (array)$bronto_result;
 
 		}
-		
+
 		// Return results
 		return $result_set;
 
 	}
-	
+
 }
 
 /* End of file bronto_model.php */
